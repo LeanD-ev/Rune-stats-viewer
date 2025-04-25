@@ -1,0 +1,29 @@
+{
+    "name": "rune-stats-viewer",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "lint": "next lint"
+    },
+    "dependencies": {
+      "@shadcn/ui": "^0.6.0",
+      "lucide-react": "^0.292.0",
+      "next": "13.4.12",
+      "react": "18.2.0",
+      "react-dom": "18.2.0",
+      "recharts": "^2.5.0",
+      "tailwindcss": "^3.3.0"
+    },
+    "devDependencies": {
+      "autoprefixer": "^10.4.14",
+      "eslint": "8.43.0",
+      "eslint-config-next": "13.4.12",
+      "postcss": "^8.4.24",
+      "prettier": "^2.8.8",
+      "typescript": "^5.1.6"
+    }
+  }
+  

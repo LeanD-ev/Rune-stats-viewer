@@ -1,0 +1,164 @@
+import { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { Input } from '@/components/ui/input';
+import { Loader2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
+
+export default function RuneStatsViewer() {
+  const [bg, setBg] = useState('bg-slate-100');
+  const [username, setUsername] = useState('');
+  const [data, setData] = useState([]);
+  const [quests, setQuests] = useState([]);
+  const [money, setMoney] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchStats = async () => {
+    if (!username) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`https://apps.runescape.com/runemetrics/profile/profile?user=${username}`);
+      const json = await res.json();
+
+      if (json.skills) {
+        const formatted = json.skills.map((skill, idx) => ({
+          skill: skillnames[idx] || `Skill ${idx}`,
+          xp: skill.xp || 0,
+        }));
+        setData(formatted);
+      }
+
+      if (json.totalMoney) {
+        setMoney((json.totalMoney / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }));
+      } else {
+        setMoney(null);
+      }
+
+      if (json.quests) {
+        setQuests(json.quests);
+      } else {
+        setQuests([]);
+      }
+    } catch (err) {
+      console.error('Erro ao buscar dados:', err);
+    }
+    setLoading(false);
+  };
+
+  const skillnames = [
+    'Attack ⚔️', 'Defence 🛡️', 'Strength 💪', 'Constitution ❤️', 'Ranged 🏹', 'Prayer 🔔', 'Magic ✨',
+    'Cooking 🍽️', 'Woodcutting 🪓', 'Fletching 🖊️', 'Fishing 🎣',
+    'Firemaking 🔥', 'Crafting 🔨', 'Smithing 🌌', 'Mining ⛏️',
+    'Herblore 🌿', 'Agility 🏃', 'Thieving 👫', 'Slayer 🩸',
+    'Farming 🌾', 'Runecrafting 🔮', 'Hunter 🐾', 'Construction 🏠',
+    'Summoning 🪑', 'Dungeoneering 🕵️', 'Divination ✨', 'Invention 🤖', 'Archaeology 🏛️'
+  ];
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'COMPLETED': return '✅';
+      case 'NOT_STARTED': return '❌';
+      case 'STARTED': return '⏳';
+      default: return '❔';
+    }
+  };
+
+  const completedQuests = quests.filter(q => q.status === 'COMPLETED').length;
+  const totalQuests = quests.length;
+  const questProgress = totalQuests ? (completedQuests / totalQuests) * 100 : 0;
+  const totalXp = data.reduce((sum, s) => sum + (s.xp || 0), 0);
+
+  return (
+    <div className={`min-h-screen ${bg} p-4`}> 
+      <h1 className="text-3xl font-bold text-center mb-4">Rune Stats Viewer</h1>
+
+      <div className="flex justify-center gap-2 mb-4">
+        <Input
+          className="w-1/2"
+          placeholder="Digite seu nome de jogador..."
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <Button onClick={fetchStats}>Buscar</Button>
+      </div>
+
+      <div className="flex justify-center gap-2 mb-4">
+        <Button onClick={() => setBg('bg-slate-100')}>Claro</Button>
+        <Button onClick={() => setBg('bg-gray-900 text-white')}>Escuro</Button>
+        <Button onClick={() => setBg('bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 text-white')}>Colorido</Button>
+      </div>
+
+      {loading ? (
+        <div className="flex justify-center items-center py-10">
+          <Loader2 className="animate-spin w-10 h-10" />
+        </div>
+      ) : (
+        <>
+          {data.length > 0 && (
+            <Card className="mb-6">
+              <CardContent>
+                <h2 className="text-xl font-semibold mb-2">XP por Habilidade</h2>
+                <div className="text-center mb-2 text-md font-medium">XP Total: {totalXp.toLocaleString('pt-BR')}</div>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={data}>
+                    <XAxis dataKey="skill" interval={0} angle={-45} textAnchor="end" height={80} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="xp" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          )}
+
+          {money && (
+            <div className="text-center text-lg font-semibold mb-4">Total de Dinheiro no Banco: {money}</div>
+          )}
+
+          {quests.length > 0 && (
+            <Card className="mb-6">
+              <CardContent>
+                <h2 className="text-xl font-semibold mb-4">Quests</h2>
+                <div className="mb-4">
+                  <div className="mb-1 text-sm font-medium">Progresso de Quests: {completedQuests} de {totalQuests}</div>
+                  <Progress value={questProgress} />
+                </div>
+                <Tabs defaultValue="ALL">
+                  <TabsList className="grid grid-cols-4 gap-2 mb-4">
+                    <TabsTrigger value="ALL">Todas</TabsTrigger>
+                    <TabsTrigger value="COMPLETED">Concluídas ✅</TabsTrigger>
+                    <TabsTrigger value="STARTED">Em Andamento ⏳</TabsTrigger>
+                    <TabsTrigger value="NOT_STARTED">Não Iniciadas ❌</TabsTrigger>
+                  </TabsList>
+                  {['ALL', 'COMPLETED', 'STARTED', 'NOT_STARTED'].map((filter) => (
+                    <TabsContent key={filter} value={filter}>
+                      <ul className="grid gap-1 max-h-96 overflow-y-auto">
+                        {quests.filter(q => filter === 'ALL' || q.status === filter).map((q, i) => (
+                          <li key={i} className="flex justify-between border-b py-1">
+                            <span>{getStatusIcon(q.status)} {q.title}</span>
+                            <span className="text-xs">{q.status.replace('_', ' ')}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </CardContent>
+            </Card>
+          )}
+        </>
+      )}
+
+      <div className="flex justify-center gap-4">
+        <a href="https://github.com/LeanD-ev" target="_blank" rel="noopener noreferrer">
+          <Button>GitHub - LeanD-ev</Button>
+        </a>
+        <a href="https://instagram.com/Leandro_cob" target="_blank" rel="noopener noreferrer">
+          <Button>Instagram - Leandro_cob</Button>
+        </a>
+      </div>
+    </div>
+  );
+}
